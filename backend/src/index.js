@@ -1,4 +1,13 @@
 require('dotenv').config();
+
+// Prevent crashes from unhandled promise rejections (e.g. Neo4j connection failures)
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason?.message || reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err?.message || err);
+});
+
 const express = require('express');
 const cors = require('cors');
 const nodosRoutes = require('./routes/nodos');
@@ -52,11 +61,11 @@ setInterval(async () => {
       numeros: 0,
       operadoras: 0,
       dispositivos: 0,
-      llamadas: 200,
-      mensajes: 120,
+      llamadas: 50,
+      mensajes: 30,
       reportes: 0,
       inyectarFraude,
-      fraudeRatio: 0.25,
+      fraudeRatio: 0.01,
     });
     logger.info('Simulacion periodica completada', { inyectarFraude });
   } catch (error) {

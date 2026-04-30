@@ -7,8 +7,11 @@ import { toast } from '../components/Toast.jsx'
 
 const PRESET_QUERIES = [
   {
-    label: 'Red sospechosa',
-    cypher: `MATCH (n:Numero:Sospechoso)-[r*1..2]-(m) RETURN n, r, m LIMIT 100`,
+    label: 'Top 10 Riesgo (Red)',
+    cypher: `MATCH (n:Numero)
+             WITH n ORDER BY n.score_riesgo DESC LIMIT 10
+             OPTIONAL MATCH (n)-[r]-(m)
+             RETURN n, r, m`,
   },
   {
     label: 'IMEI compartido',
@@ -16,18 +19,18 @@ const PRESET_QUERIES = [
              WITH d, collect(n) AS nums, collect(r) AS rels
              WHERE size(nums) >= 2
              UNWIND nums AS n UNWIND rels AS r
-             RETURN d, r, n LIMIT 100`,
+             RETURN d, r, n LIMIT 50`,
   },
   {
-    label: 'Cluster coordinado',
-    cypher: `MATCH (a:Numero)-[r:CONTACTO_FRECUENTE]->(b:Numero)
-             RETURN a, r, b LIMIT 100`,
-  },
-  {
-    label: 'Llamadas nocturnas',
+    label: 'Llamadas Nocturnas',
     cypher: `MATCH (n:Numero)-[ro:ORIGINO]->(l:Llamada)
              WHERE l.hora < '05:00'
-             RETURN n, ro, l LIMIT 80`,
+             RETURN n, ro, l LIMIT 50`,
+  },
+  {
+    label: 'Red de Reportes',
+    cypher: `MATCH (p:Persona)-[r1:REALIZO_REPORTE]->(rep:Reporte)-[r2:INVOLUCRA_NUMERO]->(n:Numero)
+             RETURN p, r1, rep, r2, n LIMIT 50`,
   },
 ]
 
@@ -38,23 +41,45 @@ function GrafoExplorerPage() {
   const [selectedNode, setSelectedNode] = useState(null)
   const [cypherResults, setCypherResults] = useState(null)
   const [runningCustom, setRunningCustom] = useState(false)
+  const [stats, setStats] = useState(null)
 
-  const handleSearch = useCallback(() => {
+  const handleSearch = useCallback(async () => {
     if (!searchNum.trim()) return
+    // Búsqueda limpia de 1 salto para no saturar el grafo
     setCypher(
-      `MATCH (n:Numero {numero: "${searchNum.trim()}"})-[r*1..2]-(m) RETURN n, r, m LIMIT 100`
+      `MATCH (n:Numero {numero: "${searchNum.trim()}"})
+       OPTIONAL MATCH (n)-[r]-(m)
+       RETURN n, r, m LIMIT 50`
     )
     setSelectedNode(null)
+    setStats(null)
   }, [searchNum])
 
   function handlePreset(q) {
-    setCypher(q.cypher)
+    // Agregamos un comentario con timestamp para forzar el re-render en NeovisGraph
+    setCypher(`${q.cypher}\n// ${Date.now()}`)
     setSelectedNode(null)
     setCypherResults(null)
   }
 
-  function handleNodeClick(node) {
+
+  async function handleNodeClick(node) {
     setSelectedNode(node)
+    setStats(null)
+    
+    // Si es un Numero, traemos estadísticas rápidas
+    if (node.group === 'Numero' || node.label.includes('-')) {
+      try {
+        const res = await runCypher(`
+          MATCH (n:Numero {numero: "${node.label}"})
+          OPTIONAL MATCH (n)-[:ORIGINO]->(l:Llamada)
+          OPTIONAL MATCH (n)-[:ORIGINO]->(l2:Llamada)-[:DIRIGIDA_A]->(v:Numero)
+          OPTIONAL MATCH (r:Reporte)-[:INVOLUCRA_NUMERO]->(n)
+          RETURN count(DISTINCT l) as calls, count(DISTINCT v) as victims, count(DISTINCT r) as reports
+        `)
+        if (res.length > 0) setStats(res[0])
+      } catch (e) { console.error(e) }
+    }
   }
 
   async function handleRunCustom() {
@@ -116,12 +141,26 @@ function GrafoExplorerPage() {
 
           <div className="card">
             <h3>Propiedades del nodo</h3>
+            {stats && (
+              <div className="panel-stack" style={{ gap: 8, marginBottom: 15, padding: 12, background: 'var(--bg-card-alt)', borderRadius: 8 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Resumen de Actividad</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Llamadas:</span> <strong>{stats.calls}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Víctimas:</span> <strong>{stats.victims}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Reportes:</span> <strong style={{ color: stats.reports > 0 ? 'var(--danger)' : 'inherit' }}>{stats.reports}</strong>
+                </div>
+              </div>
+            )}
             {nodeProps ? (
               <div className="panel-stack" style={{ gap: 6 }}>
                 {Object.entries(nodeProps).map(([key, val]) => (
                   <div key={key} className="pill" style={{ justifyContent: 'space-between' }}>
-                    <span>{key}</span>
-                    <strong>{typeof val === 'object' ? JSON.stringify(val) : String(val)}</strong>
+                    <span style={{ fontSize: 11 }}>{key}</span>
+                    <strong style={{ fontSize: 11 }}>{typeof val === 'object' ? JSON.stringify(val) : String(val)}</strong>
                   </div>
                 ))}
               </div>

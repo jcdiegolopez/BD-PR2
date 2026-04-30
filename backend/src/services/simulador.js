@@ -205,8 +205,9 @@ async function generarDataset({
     await runBatched(
       session,
       `UNWIND $rows AS row
-       CREATE (p:Persona)
-       SET p = row`,
+       MERGE (p:Persona {dpi: row.dpi})
+       ON CREATE SET p += row
+       ON MATCH SET p.nombre = row.nombre`, // Actualizar nombre si cambia
       personasData
     );
 
@@ -214,8 +215,8 @@ async function generarDataset({
     await runBatched(
       session,
       `UNWIND $rows AS row
-       CREATE (n:Numero)
-       SET n = row`,
+       MERGE (n:Numero {numero: row.numero})
+       ON CREATE SET n += row`,
       numerosData
     );
 
@@ -223,8 +224,8 @@ async function generarDataset({
     await runBatched(
       session,
       `UNWIND $rows AS row
-       CREATE (d:Dispositivo)
-       SET d = row`,
+       MERGE (d:Dispositivo {imei: row.imei})
+       ON CREATE SET d += row`,
       dispositivosData
     );
 
@@ -251,7 +252,8 @@ async function generarDataset({
         `UNWIND $rows AS row
          MATCH (p:Persona) WHERE id(p) = row.personaId
          MATCH (n:Numero) WHERE id(n) = row.numeroId
-         MERGE (p)-[:ES_TITULAR_DE {fecha_desde: date('2023-01-01'), verificado: true, tipo_contrato: 'prepago'}]->(n)`,
+         MERGE (p)-[:ES_TITULAR_DE]->(n)
+         ON CREATE SET p.fecha_desde = date('2023-01-01')`,
         titularRows
       );
     }
@@ -357,11 +359,11 @@ async function generarDataset({
       logger.info('Simulador inyectar fraude');
       await session.run(
         `MATCH (n:Numero)
-         WITH n LIMIT 1
+         WITH n LIMIT 2
          MATCH (v:Numero)
-         WITH n, collect(v)[0..60] AS victimas
+         WITH n, collect(v)[0..15] AS victimas
          UNWIND victimas AS v
-         CREATE (n)-[:CONTACTO_FRECUENTE {veces_contacto: 12, ultima_vez: date(), patron_detectado: 'estrella', horarios: ['01:00','02:00']}]->(v)`
+         CREATE (n)-[:CONTACTO_FRECUENTE {veces_contacto: 8, ultima_vez: date(), patron_detectado: 'estrella', horarios: ['01:00','02:00']}]->(v)`
       );
 
       await session.run(
@@ -396,14 +398,13 @@ async function generarDataset({
         `MATCH (s:Numero)
          WITH s LIMIT 1
          MATCH (v:Numero)
-         WITH s, collect(v)[0..10] AS victimas
+         WITH s, collect(v)[0..5] AS victimas
          UNWIND victimas AS v
          CREATE (m:Mensaje {
            id_mensaje: 'MSG-AME-' + toString(id(v)) + '-' + toString(id(s)),
            tipo: 'SMS',
            fecha: date(),
            contiene_amenaza: true,
-           longitud_caracteres: 120,
            score_riesgo: 0.95,
            palabras_clave: ['dinero', 'amenaza']
          })
@@ -421,11 +422,12 @@ async function generarDataset({
          MERGE (a)-[:CONTACTO_FRECUENTE {veces_contacto: 7, ultima_vez: date(), patron_detectado: 'coordinado', horarios: ['00:30','03:20']}]->(b)`
       );
 
+      // Ya no forzamos score_riesgo ni la etiqueta Sospechoso. 
+      // Dejamos que el motor de detección (detector.js) lo haga solo.
       await session.run(
         `MATCH (n:Numero)
-         WITH n LIMIT 10
-         SET n.score_riesgo = 0.8, n.total_reportes = 4
-         SET n:Sospechoso`
+         WITH n LIMIT 5
+         SET n.total_reportes = 1`
       );
     }
 

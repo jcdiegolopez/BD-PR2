@@ -251,7 +251,9 @@ function GestionNodosPage() {
                     </td>
                     <td>
                       {(node.labels || []).map((l) => (
-                        <span key={l} className="badge info" style={{ marginRight: 4 }}>{l}</span>
+                        <span key={l} className={`badge ${l === 'Sospechoso' ? 'high' : 'info'}`} style={{ marginRight: 4 }}>
+                          {l}
+                        </span>
                       ))}
                     </td>
                     <td>{getIdentifier(node)}</td>

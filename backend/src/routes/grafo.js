@@ -22,6 +22,9 @@ router.get('/', async (req, res) => {
     logger.info('Grafo query ejecutada', { hasParams: Boolean(params) });
     const result = await session.run(cypher, parsedParams);
     return res.json(result.records.map((r) => r.toObject()));
+  } catch (error) {
+    logger.error('Grafo query error', { error: error.message });
+    return res.status(500).json({ error: error.message || 'Error ejecutando query' });
   } finally {
     await session.close();
   }
@@ -41,6 +44,9 @@ router.get('/stats', async (_req, res) => {
       label: r.get('label'),
       total: r.get('total'),
     })));
+  } catch (error) {
+    logger.error('Stats error', { error: error.message });
+    return res.status(500).json({ error: error.message || 'Error obteniendo stats' });
   } finally {
     await session.close();
   }
