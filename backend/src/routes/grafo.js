@@ -1,5 +1,6 @@
 const express = require('express');
 const { getSession } = require('../services/neo4j');
+const logger = require('../services/logger');
 
 const router = express.Router();
 
@@ -18,6 +19,7 @@ router.get('/', async (req, res) => {
   }
   const session = getSession();
   try {
+    logger.info('Grafo query ejecutada', { hasParams: Boolean(params) });
     const result = await session.run(cypher, parsedParams);
     return res.json(result.records.map((r) => r.toObject()));
   } finally {
@@ -28,6 +30,7 @@ router.get('/', async (req, res) => {
 router.get('/stats', async (_req, res) => {
   const session = getSession();
   try {
+    logger.info('Grafo stats solicitadas');
     const result = await session.run(
       `MATCH (n)
        UNWIND labels(n) AS label

@@ -1,8 +1,10 @@
 const { getSession } = require('./neo4j');
+const logger = require('./logger');
 
 async function runGraphAlgorithms() {
   const session = getSession();
   try {
+    logger.info('GDS inicio');
     await session.run(
       `CALL gds.graph.project('redFraude', 'Numero', 'CONTACTO_FRECUENTE')`
     );

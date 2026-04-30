@@ -1,8 +1,10 @@
 const { getSession } = require('./neo4j');
+const logger = require('./logger');
 
 async function runDetections({ ventanaDias = 7 } = {}) {
   const session = getSession();
   try {
+    logger.info('Deteccion inicio', { ventanaDias });
     const results = {};
 
     const masivo = await session.run(
@@ -91,6 +93,7 @@ async function runDetections({ ventanaDias = 7 } = {}) {
 
     return results;
   } finally {
+    logger.info('Deteccion fin');
     await session.close();
   }
 }

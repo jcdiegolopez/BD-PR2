@@ -1,6 +1,7 @@
 const express = require('express');
 const { getSession } = require('../services/neo4j');
 const { RELATIONSHIPS, RELATIONSHIP_LABELS } = require('../services/schema');
+const logger = require('../services/logger');
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.post('/', async (req, res) => {
   }
   const session = getSession();
   try {
+    logger.info('Relacion crear intento', { tipo });
     const validationResult = await session.run(
       `MATCH (origen) WHERE id(origen) = $origenId
        MATCH (destino) WHERE id(destino) = $destinoId
@@ -108,6 +110,7 @@ router.post('/', async (req, res) => {
       destinoId: Number(destinoId),
       props: propiedades || {},
     });
+    logger.info('Relacion creada', { tipo });
     return res.status(201).json(result.records[0].get('r').properties);
   } finally {
     await session.close();
@@ -118,6 +121,7 @@ router.patch('/:id/propiedades', async (req, res) => {
   const { propiedades } = req.body;
   const session = getSession();
   try {
+    logger.info('Relacion actualizada', { id: Number(req.params.id) });
     const result = await session.run(
       `MATCH ()-[r]->() WHERE id(r) = $id
        SET r += $props
@@ -137,6 +141,7 @@ router.patch('/bulk/propiedades', async (req, res) => {
   const { ids, propiedades } = req.body;
   const session = getSession();
   try {
+    logger.info('Relaciones actualizadas bulk', { total: (ids || []).length });
     await session.run(
       `UNWIND $rows AS row
        MATCH ()-[r]->() WHERE id(r) = row.id
@@ -156,6 +161,7 @@ router.delete('/:id/propiedades', async (req, res) => {
   }
   const session = getSession();
   try {
+    logger.info('Relacion props eliminadas', { id: Number(req.params.id) });
     const result = await session.run(
       `MATCH ()-[r]->() WHERE id(r) = $id
        FOREACH (key IN $keys | SET r[key] = null)
@@ -178,6 +184,7 @@ router.delete('/bulk/propiedades', async (req, res) => {
   }
   const session = getSession();
   try {
+    logger.info('Relaciones props eliminadas bulk', { total: (ids || []).length });
     await session.run(
       `UNWIND $rows AS row
        MATCH ()-[r]->() WHERE id(r) = row.id
@@ -193,6 +200,7 @@ router.delete('/bulk/propiedades', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const session = getSession();
   try {
+    logger.info('Relacion eliminada', { id: Number(req.params.id) });
     await session.run(`MATCH ()-[r]->() WHERE id(r) = $id DELETE r`, {
       id: Number(req.params.id),
     });
@@ -206,6 +214,7 @@ router.delete('/bulk', async (req, res) => {
   const { ids } = req.body;
   const session = getSession();
   try {
+    logger.info('Relaciones eliminadas bulk', { total: (ids || []).length });
     await session.run(
       `UNWIND $ids AS id
        MATCH ()-[r]->() WHERE id(r) = id

@@ -1,5 +1,6 @@
 const express = require('express');
 const { getSession } = require('../services/neo4j');
+const logger = require('../services/logger');
 
 const router = express.Router();
 
@@ -11,6 +12,7 @@ router.post('/cargar', async (req, res) => {
 
   const session = getSession();
   try {
+    logger.info('CSV carga solicitada', { entidad });
     const queryMap = {
       Numero: `LOAD CSV WITH HEADERS FROM $csvUrl AS row
         CREATE (:Numero {
@@ -101,6 +103,7 @@ router.post('/cargar', async (req, res) => {
     }
 
     await session.run(queryMap[entidad], { csvUrl });
+    logger.info('CSV carga completada', { entidad });
     return res.json({ cargado: true, entidad });
   } finally {
     await session.close();

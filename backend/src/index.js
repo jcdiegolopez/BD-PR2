@@ -10,6 +10,7 @@ const csvRoutes = require('./routes/csv');
 const datascienceRoutes = require('./routes/datascience');
 const { generarDataset } = require('./services/simulador');
 const { runDetections } = require('./services/detector');
+const logger = require('./services/logger');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -30,7 +31,7 @@ app.use('/api/csv', csvRoutes);
 app.use('/api/datascience', datascienceRoutes);
 
 app.listen(PORT, () => {
-  console.log(`Backend escuchando en puerto ${PORT}`);
+  logger.info('Backend escuchando', { port: PORT });
 });
 
 const SIMULACION_CADA_MS = 3 * 60 * 1000;
@@ -57,11 +58,9 @@ setInterval(async () => {
       inyectarFraude,
       fraudeRatio: 0.25,
     });
-    console.log(
-      `Simulacion periodica completada${inyectarFraude ? ' (fraude inyectado)' : ''}`
-    );
+    logger.info('Simulacion periodica completada', { inyectarFraude });
   } catch (error) {
-    console.error('Error en simulacion periodica:', error.message);
+    logger.error('Error en simulacion periodica', { error: error.message });
   } finally {
     simulacionEnCurso = false;
   }
@@ -74,9 +73,9 @@ setInterval(async () => {
   deteccionEnCurso = true;
   try {
     await runDetections();
-    console.log('Deteccion periodica completada');
+    logger.info('Deteccion periodica completada');
   } catch (error) {
-    console.error('Error en deteccion periodica:', error.message);
+    logger.error('Error en deteccion periodica', { error: error.message });
   } finally {
     deteccionEnCurso = false;
   }

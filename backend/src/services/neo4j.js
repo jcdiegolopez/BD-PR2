@@ -1,4 +1,5 @@
 const neo4j = require('neo4j-driver');
+const logger = require('./logger');
 
 let driver;
 
@@ -11,6 +12,7 @@ function getDriver() {
       disableLosslessIntegers: true,
       maxConnectionPoolSize: 50,
     });
+    logger.info('Neo4j driver inicializado', { uri: uri ? uri.replace(/:\/\/.+@/, '://***@') : null });
   }
   return driver;
 }

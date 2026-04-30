@@ -1,6 +1,7 @@
 const express = require('express');
 const { getSession } = require('../services/neo4j');
 const { LABELS } = require('../services/schema');
+const logger = require('../services/logger');
 
 const router = express.Router();
 
@@ -24,15 +25,20 @@ router.get('/', async (req, res) => {
 
   const session = getSession();
   try {
+    logger.info('Nodos listados', { label: label || null });
     const result = await session.run(
       `MATCH (n)
        WHERE ($label IS NULL OR $label IN labels(n))
        AND all(k IN keys($filters) WHERE n[k] = $filters[k])
-       RETURN n
+       RETURN id(n) AS id, labels(n) AS labels, properties(n) AS properties
        LIMIT 200`,
       { label: label || null, filters }
     );
-    return res.json(result.records.map((r) => r.get('n').properties));
+    return res.json(result.records.map((r) => ({
+      id: r.get('id'),
+      labels: r.get('labels'),
+      properties: r.get('properties'),
+    })));
   } finally {
     await session.close();
   }
@@ -45,6 +51,7 @@ router.get('/agregaciones', async (req, res) => {
   }
   const session = getSession();
   try {
+    logger.info('Nodos agregaciones', { label: label || null });
     const result = await session.run(
       `MATCH (n)
        WHERE ($label IS NULL OR $label IN labels(n))
@@ -60,6 +67,7 @@ router.get('/agregaciones', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const session = getSession();
   try {
+    logger.info('Nodo obtenido', { id: Number(req.params.id) });
     const result = await session.run(
       `MATCH (n) WHERE id(n) = $id
        OPTIONAL MATCH (n)-[r]-(m)
@@ -87,6 +95,7 @@ router.post('/', async (req, res) => {
   }
   const session = getSession();
   try {
+    logger.info('Nodo creado', { labels });
     const result = await session.run(
       `CREATE (n)
        SET n = $props
@@ -113,6 +122,7 @@ router.patch('/:id/propiedades', async (req, res) => {
   const { propiedades } = req.body;
   const session = getSession();
   try {
+    logger.info('Nodo actualizado', { id: Number(req.params.id) });
     const result = await session.run(
       `MATCH (n) WHERE id(n) = $id
        SET n += $props
@@ -132,6 +142,7 @@ router.patch('/bulk/propiedades', async (req, res) => {
   const { ids, propiedades } = req.body;
   const session = getSession();
   try {
+    logger.info('Nodos actualizados bulk', { total: (ids || []).length });
     await session.run(
       `UNWIND $rows AS row
        MATCH (n) WHERE id(n) = row.id
@@ -151,6 +162,7 @@ router.delete('/:id/propiedades', async (req, res) => {
   }
   const session = getSession();
   try {
+    logger.info('Nodo props eliminadas', { id: Number(req.params.id) });
     const result = await session.run(
       `MATCH (n) WHERE id(n) = $id
        FOREACH (key IN $keys | SET n[key] = null)
@@ -173,6 +185,7 @@ router.delete('/bulk/propiedades', async (req, res) => {
   }
   const session = getSession();
   try {
+    logger.info('Nodos props eliminadas bulk', { total: (ids || []).length });
     await session.run(
       `UNWIND $rows AS row
        MATCH (n) WHERE id(n) = row.id
@@ -188,6 +201,7 @@ router.delete('/bulk/propiedades', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const session = getSession();
   try {
+    logger.info('Nodo eliminado', { id: Number(req.params.id) });
     await session.run(`MATCH (n) WHERE id(n) = $id DETACH DELETE n`, {
       id: Number(req.params.id),
     });
@@ -201,6 +215,7 @@ router.delete('/bulk', async (req, res) => {
   const { ids } = req.body;
   const session = getSession();
   try {
+    logger.info('Nodos eliminados bulk', { total: (ids || []).length });
     await session.run(
       `UNWIND $ids AS id
        MATCH (n) WHERE id(n) = id

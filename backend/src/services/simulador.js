@@ -1,5 +1,6 @@
 const { faker } = require('@faker-js/faker');
 const { getSession } = require('./neo4j');
+const logger = require('./logger');
 
 function chunkArray(items, size) {
   const chunks = [];
@@ -179,6 +180,17 @@ async function generarDataset({
 } = {}) {
   const session = getSession();
   try {
+    logger.info('Simulador inicio', {
+      personas,
+      numeros,
+      operadoras,
+      dispositivos,
+      llamadas,
+      mensajes,
+      reportes,
+      inyectarFraude,
+      fraudeRatio,
+    });
     const operadorasData = generateOperadoras().slice(0, operadoras);
     await runBatched(
       session,
@@ -280,6 +292,7 @@ async function generarDataset({
     const ratio = inyectarFraude ? fraudeRatio : 0;
     const llamadasData = generateLlamadas(llamadas, numeroIds, fraudOrigins, ratio);
     if (!numeroIds.length && llamadasData.length) {
+      logger.warn('Simulador sin Numero', { llamadas: llamadasData.length });
       return {
         error: 'No existen Numero para generar llamadas/mensajes',
       };
@@ -341,6 +354,7 @@ async function generarDataset({
     }
 
     if (inyectarFraude) {
+      logger.info('Simulador inyectar fraude');
       await session.run(
         `MATCH (n:Numero)
          WITH n LIMIT 1
@@ -426,6 +440,7 @@ async function generarDataset({
       inyectarFraude,
     };
   } finally {
+    logger.info('Simulador fin');
     await session.close();
   }
 }
