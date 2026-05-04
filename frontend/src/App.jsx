@@ -4,6 +4,7 @@ import GrafoExplorerPage from './pages/GrafoExplorer.jsx'
 import GestionNodosPage from './pages/GestionNodos.jsx'
 import GestionRelacionesPage from './pages/GestionRelaciones.jsx'
 import SimuladorPage from './pages/Simulador.jsx'
+import DataSciencePage from './pages/DataScience.jsx'
 import ToastContainer from './components/Toast.jsx'
 import './App.css'
 
@@ -16,6 +17,7 @@ function App() {
         <Route path="/nodos" element={<GestionNodosPage />} />
         <Route path="/relaciones" element={<GestionRelacionesPage />} />
         <Route path="/simulador" element={<SimuladorPage />} />
+        <Route path="/datascience" element={<DataSciencePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ToastContainer />

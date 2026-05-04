@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
+  BrainCircuit,
   Database,
   GitBranch,
   LayoutDashboard,
@@ -14,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/nodos', label: 'Gestion Nodos', icon: Database },
   { to: '/relaciones', label: 'Relaciones', icon: GitBranch },
   { to: '/simulador', label: 'Simulador', icon: MessageSquare },
+  { to: '/datascience', label: 'Analisis de Red', icon: BrainCircuit },
 ]
 
 function AppShell({ children, title, actions }) {
