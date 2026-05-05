@@ -60,7 +60,9 @@ function GestionNodosPage() {
   async function handleSaveNode({ labels, propiedades, id }) {
     try {
       if (id != null) {
-        await updateNodeLabels(id, labels)
+        if (labels && labels.length > 0) {
+           await updateNodeLabels(id, labels)
+        }
         await updateNodeProps(id, propiedades)
         toast('Nodo actualizado', 'success')
       } else {

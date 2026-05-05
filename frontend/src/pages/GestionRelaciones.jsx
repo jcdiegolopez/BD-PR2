@@ -2,17 +2,13 @@ import { useEffect, useState, useCallback } from 'react'
 import { Search, Trash2, ChevronDown } from 'lucide-react'
 import AppShell from '../components/AppShell.jsx'
 import RelationModal from '../components/RelationModal.jsx'
+import NodeSearchAutocomplete from '../components/NodeSearchAutocomplete.jsx'
 import {
   listRelations, createRelation, updateRelationProps, deleteRelationProps,
   deleteRelation, bulkDeleteRelations, bulkUpdateRelationProps, bulkDeleteRelationProps,
 } from '../lib/api.js'
 import { toast } from '../components/Toast.jsx'
-
-const RELATION_TYPES = [
-  'ORIGINO', 'DIRIGIDA_A', 'ENVIO', 'RECIBIDO_POR', 'ES_TITULAR_DE',
-  'PERTENECE_A', 'USO_NUMERO', 'REALIZO_REPORTE', 'INVOLUCRA_NUMERO',
-  'GENERO', 'CONTACTO_FRECUENTE', 'VICTIMA_DE',
-]
+import { RELATIONSHIPS as RELATION_TYPES, RELATIONSHIP_LABELS } from '../lib/schema.js'
 
 function GestionRelacionesPage() {
   const [relations, setRelations] = useState([])
@@ -73,6 +69,10 @@ function GestionRelacionesPage() {
 
   async function handleCreate(e) {
     e.preventDefault()
+    if (!createForm.origenId || !createForm.destinoId) {
+      toast('Debes seleccionar un nodo de origen y destino válidos', 'error')
+      return
+    }
     const propiedades = {}
     for (const p of createForm.props) {
       if (p.key.trim()) {
@@ -81,8 +81,8 @@ function GestionRelacionesPage() {
     }
     try {
       await createRelation({
-        origenId: Number(createForm.origenId),
-        destinoId: Number(createForm.destinoId),
+        origenId: createForm.origenId.trim(),
+        destinoId: createForm.destinoId.trim(),
         tipo: createForm.tipo,
         propiedades,
       })
@@ -231,16 +231,9 @@ function GestionRelacionesPage() {
         <div className="card" style={{ gridColumn: 'span 4' }}>
           <h3>Nueva relación</h3>
           <p className="hint" style={{ marginBottom: 12 }}>
-            Obtén el ID de un nodo desde la tabla de la derecha o desde Gestión de Nodos.
+            Busca y selecciona los nodos para crear una relación entre ellos.
           </p>
           <form className="form" onSubmit={handleCreate}>
-            <label>ID nodo origen</label>
-            <input
-              placeholder="Ej: 12345"
-              value={createForm.origenId}
-              onChange={(e) => setCreateForm((p) => ({ ...p, origenId: e.target.value }))}
-              required
-            />
             <label>Tipo</label>
             <select
               value={createForm.tipo}
@@ -248,12 +241,19 @@ function GestionRelacionesPage() {
             >
               {RELATION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
+            <label>ID nodo origen</label>
+            <NodeSearchAutocomplete
+              label={RELATIONSHIP_LABELS[createForm.tipo]?.origen}
+              value={createForm.origenId}
+              onChange={(val) => setCreateForm((p) => ({ ...p, origenId: val }))}
+              placeholder={`Buscar ${RELATIONSHIP_LABELS[createForm.tipo]?.origen} origen...`}
+            />
             <label>ID nodo destino</label>
-            <input
-              placeholder="Ej: 67890"
+            <NodeSearchAutocomplete
+              label={RELATIONSHIP_LABELS[createForm.tipo]?.destino}
               value={createForm.destinoId}
-              onChange={(e) => setCreateForm((p) => ({ ...p, destinoId: e.target.value }))}
-              required
+              onChange={(val) => setCreateForm((p) => ({ ...p, destinoId: val }))}
+              placeholder={`Buscar ${RELATIONSHIP_LABELS[createForm.tipo]?.destino} destino...`}
             />
             <label>Propiedades</label>
             {createForm.props.map((p, i) => (

@@ -45,6 +45,45 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/buscar', async (req, res) => {
+  const { q, label } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: 'Query "q" requerida' });
+  }
+  if (label && !LABELS.includes(label)) {
+    return res.status(400).json({ error: 'Label no permitido' });
+  }
+  const session = getSession();
+  try {
+    logger.info('Nodos busqueda', { q, label: label || null });
+    const query = `
+      MATCH (n)
+      WHERE ($label IS NULL OR $label IN labels(n))
+      AND (
+        toLower(toString(n.nombre)) CONTAINS toLower($q) OR 
+        toLower(toString(n.numero)) CONTAINS toLower($q) OR 
+        toLower(toString(n.dpi)) CONTAINS toLower($q) OR 
+        toLower(toString(n.imei)) CONTAINS toLower($q) OR
+        toLower(toString(n.id_cdr)) CONTAINS toLower($q) OR
+        toLower(toString(n.id_mensaje)) CONTAINS toLower($q) OR
+        toLower(toString(n.id_reporte)) CONTAINS toLower($q) OR
+        elementId(n) CONTAINS $q OR
+        toString(id(n)) = $q
+      )
+      RETURN elementId(n) AS id, labels(n) AS labels, properties(n) AS properties
+      LIMIT 15
+    `;
+    const result = await session.run(query, { q, label: label || null });
+    return res.json(result.records.map((r) => ({
+      id: r.get('id'),
+      labels: r.get('labels'),
+      properties: r.get('properties'),
+    })));
+  } finally {
+    await session.close();
+  }
+});
+
 router.get('/agregaciones', async (req, res) => {
   const { label } = req.query;
   if (label && !LABELS.includes(label)) {
@@ -130,25 +169,25 @@ router.patch('/:id/labels', async (req, res) => {
     const result = await session.run(
       `MATCH (n) WHERE id(n) = $id
        FOREACH (_ IN CASE WHEN 'Numero' IN $labels THEN [1] ELSE [] END | SET n:Numero)
-       FOREACH (_ IN CASE WHEN 'Numero' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Numero)
+       FOREACH (_ IN CASE WHEN NOT 'Numero' IN $labels THEN [1] ELSE [] END | REMOVE n:Numero)
        FOREACH (_ IN CASE WHEN 'Persona' IN $labels THEN [1] ELSE [] END | SET n:Persona)
-       FOREACH (_ IN CASE WHEN 'Persona' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Persona)
+       FOREACH (_ IN CASE WHEN NOT 'Persona' IN $labels THEN [1] ELSE [] END | REMOVE n:Persona)
        FOREACH (_ IN CASE WHEN 'Operadora' IN $labels THEN [1] ELSE [] END | SET n:Operadora)
-       FOREACH (_ IN CASE WHEN 'Operadora' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Operadora)
+       FOREACH (_ IN CASE WHEN NOT 'Operadora' IN $labels THEN [1] ELSE [] END | REMOVE n:Operadora)
        FOREACH (_ IN CASE WHEN 'Dispositivo' IN $labels THEN [1] ELSE [] END | SET n:Dispositivo)
-       FOREACH (_ IN CASE WHEN 'Dispositivo' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Dispositivo)
+       FOREACH (_ IN CASE WHEN NOT 'Dispositivo' IN $labels THEN [1] ELSE [] END | REMOVE n:Dispositivo)
        FOREACH (_ IN CASE WHEN 'Llamada' IN $labels THEN [1] ELSE [] END | SET n:Llamada)
-       FOREACH (_ IN CASE WHEN 'Llamada' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Llamada)
+       FOREACH (_ IN CASE WHEN NOT 'Llamada' IN $labels THEN [1] ELSE [] END | REMOVE n:Llamada)
        FOREACH (_ IN CASE WHEN 'Mensaje' IN $labels THEN [1] ELSE [] END | SET n:Mensaje)
-       FOREACH (_ IN CASE WHEN 'Mensaje' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Mensaje)
+       FOREACH (_ IN CASE WHEN NOT 'Mensaje' IN $labels THEN [1] ELSE [] END | REMOVE n:Mensaje)
        FOREACH (_ IN CASE WHEN 'Reporte' IN $labels THEN [1] ELSE [] END | SET n:Reporte)
-       FOREACH (_ IN CASE WHEN 'Reporte' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Reporte)
+       FOREACH (_ IN CASE WHEN NOT 'Reporte' IN $labels THEN [1] ELSE [] END | REMOVE n:Reporte)
        FOREACH (_ IN CASE WHEN 'Sospechoso' IN $labels THEN [1] ELSE [] END | SET n:Sospechoso)
-       FOREACH (_ IN CASE WHEN 'Sospechoso' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Sospechoso)
+       FOREACH (_ IN CASE WHEN NOT 'Sospechoso' IN $labels THEN [1] ELSE [] END | REMOVE n:Sospechoso)
        FOREACH (_ IN CASE WHEN 'Bloqueado' IN $labels THEN [1] ELSE [] END | SET n:Bloqueado)
-       FOREACH (_ IN CASE WHEN 'Bloqueado' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Bloqueado)
+       FOREACH (_ IN CASE WHEN NOT 'Bloqueado' IN $labels THEN [1] ELSE [] END | REMOVE n:Bloqueado)
        FOREACH (_ IN CASE WHEN 'Verificado' IN $labels THEN [1] ELSE [] END | SET n:Verificado)
-       FOREACH (_ IN CASE WHEN 'Verificado' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Verificado)
+       FOREACH (_ IN CASE WHEN NOT 'Verificado' IN $labels THEN [1] ELSE [] END | REMOVE n:Verificado)
        RETURN n`,
       { id: Number(req.params.id), labels }
     );

@@ -34,6 +34,16 @@ export async function listNodes({ label, filters } = {}) {
   return data.map((item) => normalizeNeo4jRecord(item))
 }
 
+export async function searchNodes(q, label) {
+  const { data } = await api.get('/api/nodos/buscar', {
+    params: {
+      q,
+      label: label || undefined,
+    },
+  })
+  return data.map((item) => normalizeNeo4jRecord(item))
+}
+
 export async function getAggregations(label) {
   const { data } = await api.get('/api/nodos/agregaciones', {
     params: { label: label || undefined },
@@ -90,8 +100,8 @@ export async function bulkDeleteNodes(ids) {
 
 export async function listRelations({ tipo } = {}) {
   const cypher = tipo
-    ? `MATCH (a)-[r:${tipo}]->(b) RETURN id(r) AS id, type(r) AS tipo, id(a) AS origenId, labels(a) AS origenLabels, properties(a) AS origenProps, id(b) AS destinoId, labels(b) AS destinoLabels, properties(b) AS destinoProps, properties(r) AS properties ORDER BY id(r) DESC LIMIT 200`
-    : `MATCH (a)-[r]->(b) RETURN id(r) AS id, type(r) AS tipo, id(a) AS origenId, labels(a) AS origenLabels, properties(a) AS origenProps, id(b) AS destinoId, labels(b) AS destinoLabels, properties(b) AS destinoProps, properties(r) AS properties ORDER BY id(r) DESC LIMIT 200`
+    ? `MATCH (a)-[r:${tipo}]->(b) RETURN elementId(r) AS id, type(r) AS tipo, elementId(a) AS origenId, labels(a) AS origenLabels, properties(a) AS origenProps, elementId(b) AS destinoId, labels(b) AS destinoLabels, properties(b) AS destinoProps, properties(r) AS properties ORDER BY coalesce(r.createdAt, 0) DESC, id(r) DESC LIMIT 200`
+    : `MATCH (a)-[r]->(b) RETURN elementId(r) AS id, type(r) AS tipo, elementId(a) AS origenId, labels(a) AS origenLabels, properties(a) AS origenProps, elementId(b) AS destinoId, labels(b) AS destinoLabels, properties(b) AS destinoProps, properties(r) AS properties ORDER BY coalesce(r.createdAt, 0) DESC, id(r) DESC LIMIT 200`
   return runCypher(cypher)
 }
 

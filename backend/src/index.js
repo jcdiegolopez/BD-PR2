@@ -59,15 +59,15 @@ setInterval(async () => {
   try {
     const inyectarFraude = Math.random() < 0.35;
     await generarDataset({
-      personas: 0,
-      numeros: 0,
+      personas: 1,
+      numeros: 10,
       operadoras: 0,
-      dispositivos: 0,
-      llamadas: 50,
-      mensajes: 30,
-      reportes: 0,
+      dispositivos: 3,
+      llamadas: 100,
+      mensajes: 70,
+      reportes: 10,
       inyectarFraude,
-      fraudeRatio: 0.01,
+      fraudeRatio: 0.25,
     });
     logger.info('Simulacion periodica completada', { inyectarFraude });
   } catch (error) {
