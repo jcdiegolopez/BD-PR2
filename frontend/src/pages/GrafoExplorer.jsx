@@ -7,36 +7,26 @@ import { toast } from '../components/Toast.jsx'
 
 const PRESET_QUERIES = [
   {
-    label: 'Top 10 Riesgo (Red)',
-    cypher: `MATCH (n:Numero)
-             WITH n ORDER BY n.score_riesgo DESC LIMIT 10
+    label: 'Top riesgo alto',
+    cypher: `MATCH (n:Numero) WHERE n.score_riesgo >= 0.7
              OPTIONAL MATCH (n)-[r]-(m)
-             RETURN n, r, m`,
+             RETURN n, r, m LIMIT 40`,
   },
   {
-    label: 'IMEI compartido',
-    cypher: `MATCH (d:Dispositivo)-[r:USO_NUMERO]->(n:Numero)
-             WITH d, collect(n) AS nums, collect(r) AS rels
-             WHERE size(nums) >= 2
-             UNWIND nums AS n UNWIND rels AS r
-             RETURN d, r, n LIMIT 50`,
+    label: 'Sospechosos y vecinos',
+    cypher: `MATCH (n:Sospechoso)-[r]-(m)
+             RETURN n, r, m LIMIT 40`,
   },
   {
-    label: 'Llamadas Nocturnas',
-    cypher: `MATCH (n:Numero)-[ro:ORIGINO]->(l:Llamada)
-             WHERE l.hora < '05:00'
-             RETURN n, ro, l LIMIT 50`,
-  },
-  {
-    label: 'Red de Reportes',
+    label: 'Red de reportes',
     cypher: `MATCH (p:Persona)-[r1:REALIZO_REPORTE]->(rep:Reporte)-[r2:INVOLUCRA_NUMERO]->(n:Numero)
-             RETURN p, r1, rep, r2, n LIMIT 50`,
+             RETURN p, r1, rep, r2, n LIMIT 40`,
   },
 ]
 
 function GrafoExplorerPage() {
   const [searchNum, setSearchNum] = useState('')
-  const [cypher, setCypher] = useState('MATCH (n:Numero) RETURN n LIMIT 30')
+  const [cypher, setCypher] = useState('')
   const [customCypher, setCustomCypher] = useState('')
   const [selectedNode, setSelectedNode] = useState(null)
   const [cypherResults, setCypherResults] = useState(null)

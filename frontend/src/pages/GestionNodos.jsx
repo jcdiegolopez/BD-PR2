@@ -3,7 +3,7 @@ import { Search, Trash2, ChevronDown } from 'lucide-react'
 import AppShell from '../components/AppShell.jsx'
 import NodeModal from '../components/NodeModal.jsx'
 import {
-  listNodes, createNode, updateNodeProps, deleteNode,
+  listNodes, createNode, updateNodeLabels, updateNodeProps, deleteNode,
   deleteNodeProps, bulkDeleteNodes, bulkUpdateNodeProps, bulkDeleteNodeProps,
 } from '../lib/api.js'
 import { toast } from '../components/Toast.jsx'
@@ -24,6 +24,7 @@ function GestionNodosPage() {
   const [bulkAction, setBulkAction] = useState(null) // { type: 'addProp' | 'delProp' }
   const [bulkKey, setBulkKey] = useState('')
   const [bulkValue, setBulkValue] = useState('')
+  const [bulkType, setBulkType] = useState('str')
 
   const fetchNodes = useCallback(async () => {
     setLoading(true)
@@ -59,6 +60,7 @@ function GestionNodosPage() {
   async function handleSaveNode({ labels, propiedades, id }) {
     try {
       if (id != null) {
+        await updateNodeLabels(id, labels)
         await updateNodeProps(id, propiedades)
         toast('Nodo actualizado', 'success')
       } else {
@@ -96,18 +98,22 @@ function GestionNodosPage() {
     setBulkMenu(false)
   }
 
+  function parseBulkValue(val, type) {
+    if (type === 'bool') return val === 'true'
+    if (type === 'num') return val === '' ? 0 : Number(val)
+    return val
+  }
+
   async function handleBulkAddProp() {
     if (!bulkKey.trim() || selected.size === 0) return
     try {
-      let val = bulkValue
-      if (val === 'true') val = true
-      else if (val === 'false') val = false
-      else if (!isNaN(Number(val)) && val !== '') val = Number(val)
+      const val = parseBulkValue(bulkValue, bulkType)
       await bulkUpdateNodeProps([...selected], { [bulkKey.trim()]: val })
       toast(`Propiedad "${bulkKey}" agregada/actualizada en ${selected.size} nodos`, 'success')
       setBulkAction(null)
       setBulkKey('')
       setBulkValue('')
+      setBulkType('str')
       fetchNodes()
     } catch (err) {
       toast('Error: ' + err.message, 'error')
@@ -181,14 +187,25 @@ function GestionNodosPage() {
             <label>{bulkAction === 'addProp' ? 'Agregar/actualizar propiedad en' : 'Eliminar propiedad de'} {selected.size} nodo(s)</label>
             <input placeholder="Clave" value={bulkKey} onChange={(e) => setBulkKey(e.target.value)} />
             {bulkAction === 'addProp' && (
-              <input placeholder="Valor" value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <select
+                  value={bulkType}
+                  onChange={(e) => setBulkType(e.target.value)}
+                  style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 6px', color: 'var(--text)', fontSize: 12, flexShrink: 0 }}
+                >
+                  <option value="str">str</option>
+                  <option value="num">num</option>
+                  <option value="bool">bool</option>
+                </select>
+                <input style={{ flex: 1 }} placeholder={bulkType === 'bool' ? 'true / false' : 'Valor'} value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} />
+              </div>
             )}
           </div>
           <div style={{ display: 'flex', gap: 8, paddingBottom: 2 }}>
             <button className="button primary" onClick={bulkAction === 'addProp' ? handleBulkAddProp : handleBulkDeleteProp}>
               Aplicar
             </button>
-            <button className="button" onClick={() => { setBulkAction(null); setBulkKey(''); setBulkValue('') }}>
+            <button className="button" onClick={() => { setBulkAction(null); setBulkKey(''); setBulkValue(''); setBulkType('str') }}>
               Cancelar
             </button>
           </div>

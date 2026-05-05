@@ -15,15 +15,13 @@ export default function NeovisGraph({ cypher, onNodeClick }) {
     let cancelled = false
 
     async function renderGraph() {
-      if (!containerRef.current) return
+      if (!containerRef.current || !cypher?.trim()) return
       setLoading(true)
       setError(null)
 
       try {
         /* 1 ── Fetch data via backend API ─────────────────────── */
-        const records = await runCypher(
-          cypher || 'MATCH (n:Numero)-[r]->(m) RETURN n, r, m LIMIT 50'
-        )
+        const records = await runCypher(cypher)
 
         if (cancelled) return
 

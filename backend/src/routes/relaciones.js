@@ -117,26 +117,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.patch('/:id/propiedades', async (req, res) => {
-  const { propiedades } = req.body;
-  const session = getSession();
-  try {
-    logger.info('Relacion actualizada', { id: Number(req.params.id) });
-    const result = await session.run(
-      `MATCH ()-[r]->() WHERE id(r) = $id
-       SET r += $props
-       RETURN r`,
-      { id: Number(req.params.id), props: propiedades || {} }
-    );
-    if (!result.records.length) {
-      return res.status(404).json({ error: 'Relación no encontrada' });
-    }
-    return res.json(result.records[0].get('r').properties);
-  } finally {
-    await session.close();
-  }
-});
-
 router.patch('/bulk/propiedades', async (req, res) => {
   const { ids, propiedades } = req.body;
   const session = getSession();
@@ -154,19 +134,16 @@ router.patch('/bulk/propiedades', async (req, res) => {
   }
 });
 
-router.delete('/:id/propiedades', async (req, res) => {
-  const { keys } = req.body;
-  if (!Array.isArray(keys) || keys.length === 0) {
-    return res.status(400).json({ error: 'Keys requeridas' });
-  }
+router.patch('/:id/propiedades', async (req, res) => {
+  const { propiedades } = req.body;
   const session = getSession();
   try {
-    logger.info('Relacion props eliminadas', { id: Number(req.params.id) });
+    logger.info('Relacion actualizada', { id: Number(req.params.id) });
     const result = await session.run(
       `MATCH ()-[r]->() WHERE id(r) = $id
-       FOREACH (key IN $keys | SET r[key] = null)
+       SET r += $props
        RETURN r`,
-      { id: Number(req.params.id), keys }
+      { id: Number(req.params.id), props: propiedades || {} }
     );
     if (!result.records.length) {
       return res.status(404).json({ error: 'Relación no encontrada' });
@@ -197,14 +174,24 @@ router.delete('/bulk/propiedades', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id/propiedades', async (req, res) => {
+  const { keys } = req.body;
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return res.status(400).json({ error: 'Keys requeridas' });
+  }
   const session = getSession();
   try {
-    logger.info('Relacion eliminada', { id: Number(req.params.id) });
-    await session.run(`MATCH ()-[r]->() WHERE id(r) = $id DELETE r`, {
-      id: Number(req.params.id),
-    });
-    return res.json({ eliminado: true });
+    logger.info('Relacion props eliminadas', { id: Number(req.params.id) });
+    const result = await session.run(
+      `MATCH ()-[r]->() WHERE id(r) = $id
+       FOREACH (key IN $keys | SET r[key] = null)
+       RETURN r`,
+      { id: Number(req.params.id), keys }
+    );
+    if (!result.records.length) {
+      return res.status(404).json({ error: 'Relación no encontrada' });
+    }
+    return res.json(result.records[0].get('r').properties);
   } finally {
     await session.close();
   }
@@ -222,6 +209,19 @@ router.delete('/bulk', async (req, res) => {
       { ids: ids || [] }
     );
     return res.json({ eliminadas: (ids || []).length });
+  } finally {
+    await session.close();
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  const session = getSession();
+  try {
+    logger.info('Relacion eliminada', { id: Number(req.params.id) });
+    await session.run(`MATCH ()-[r]->() WHERE id(r) = $id DELETE r`, {
+      id: Number(req.params.id),
+    });
+    return res.json({ eliminado: true });
   } finally {
     await session.close();
   }

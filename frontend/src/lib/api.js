@@ -51,6 +51,11 @@ export async function createNode(payload) {
   return data
 }
 
+export async function updateNodeLabels(id, labels) {
+  const { data } = await api.patch(`/api/nodos/${id}/labels`, { labels })
+  return data
+}
+
 export async function updateNodeProps(id, propiedades) {
   const { data } = await api.patch(`/api/nodos/${id}/propiedades`, { propiedades })
   return data
@@ -85,8 +90,8 @@ export async function bulkDeleteNodes(ids) {
 
 export async function listRelations({ tipo } = {}) {
   const cypher = tipo
-    ? `MATCH (a)-[r:${tipo}]->(b) RETURN id(r) AS id, type(r) AS tipo, id(a) AS origenId, labels(a) AS origenLabels, properties(a) AS origenProps, id(b) AS destinoId, labels(b) AS destinoLabels, properties(b) AS destinoProps, properties(r) AS properties LIMIT 200`
-    : `MATCH (a)-[r]->(b) RETURN id(r) AS id, type(r) AS tipo, id(a) AS origenId, labels(a) AS origenLabels, properties(a) AS origenProps, id(b) AS destinoId, labels(b) AS destinoLabels, properties(b) AS destinoProps, properties(r) AS properties LIMIT 200`
+    ? `MATCH (a)-[r:${tipo}]->(b) RETURN id(r) AS id, type(r) AS tipo, id(a) AS origenId, labels(a) AS origenLabels, properties(a) AS origenProps, id(b) AS destinoId, labels(b) AS destinoLabels, properties(b) AS destinoProps, properties(r) AS properties ORDER BY id(r) DESC LIMIT 200`
+    : `MATCH (a)-[r]->(b) RETURN id(r) AS id, type(r) AS tipo, id(a) AS origenId, labels(a) AS origenLabels, properties(a) AS origenProps, id(b) AS destinoId, labels(b) AS destinoLabels, properties(b) AS destinoProps, properties(r) AS properties ORDER BY id(r) DESC LIMIT 200`
   return runCypher(cypher)
 }
 

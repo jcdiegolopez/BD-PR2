@@ -7,29 +7,28 @@ const ALL_LABELS = [
   'Sospechoso', 'Bloqueado', 'Verificado',
 ]
 
-function detectType(val) {
-  if (val === 'true' || val === 'false') return 'bool'
-  if (val !== '' && !isNaN(Number(val))) return 'num'
-  try { const p = JSON.parse(val); if (Array.isArray(p)) return 'list' } catch {}
+const TYPE_COLORS = { bool: '#8b5cf6', num: '#3b82f6', str: 'var(--text-muted)' }
+
+function inferType(value) {
+  if (typeof value === 'boolean') return 'bool'
+  if (typeof value === 'number') return 'num'
   return 'str'
 }
-
-const TYPE_LABELS = { bool: 'bool', num: 'num', list: '[ ]', str: 'str' }
-const TYPE_COLORS = { bool: '#8b5cf6', num: '#3b82f6', list: '#f59e0b', str: 'var(--text-muted)' }
 
 export default function NodeModal({ node, onClose, onSave }) {
   const isEdit = Boolean(node)
 
   const [labels, setLabels] = useState(isEdit ? (node.labels || []) : ['Numero'])
   const [props, setProps] = useState(() => {
-    if (!isEdit) return [{ key: '', value: '' }]
+    if (!isEdit) return [{ key: '', value: '', type: 'str' }]
     const entries = Object.entries(node.properties || {})
     return entries.length
       ? entries.map(([key, value]) => ({
           key,
           value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+          type: inferType(value),
         }))
-      : [{ key: '', value: '' }]
+      : [{ key: '', value: '', type: 'str' }]
   })
 
   function toggleLabel(label) {
@@ -38,17 +37,15 @@ export default function NodeModal({ node, onClose, onSave }) {
     )
   }
 
-  function addProp() { setProps((prev) => [...prev, { key: '', value: '' }]) }
+  function addProp() { setProps((prev) => [...prev, { key: '', value: '', type: 'str' }]) }
   function removeProp(index) { setProps((prev) => prev.filter((_, i) => i !== index)) }
   function updateProp(index, field, val) {
     setProps((prev) => prev.map((p, i) => (i === index ? { ...p, [field]: val } : p)))
   }
 
-  function parseValue(val) {
-    if (val === 'true') return true
-    if (val === 'false') return false
-    if (val !== '' && !isNaN(Number(val))) return Number(val)
-    try { const p = JSON.parse(val); if (Array.isArray(p)) return p } catch {}
+  function parseValue(val, type) {
+    if (type === 'bool') return val === 'true'
+    if (type === 'num') return val === '' ? 0 : Number(val)
     return val
   }
 
@@ -56,7 +53,7 @@ export default function NodeModal({ node, onClose, onSave }) {
     e.preventDefault()
     const propiedades = {}
     for (const p of props) {
-      if (p.key.trim()) propiedades[p.key.trim()] = parseValue(p.value)
+      if (p.key.trim()) propiedades[p.key.trim()] = parseValue(p.value, p.type)
     }
     onSave({ labels, propiedades, id: node?.id })
   }
@@ -139,44 +136,44 @@ export default function NodeModal({ node, onClose, onSave }) {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {props.map((p, i) => {
-                const t = detectType(p.value)
-                return (
-                  <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <input
-                      placeholder="clave"
-                      value={p.key}
-                      onChange={(e) => updateProp(i, 'key', e.target.value)}
-                      style={{ flex: '0 0 140px', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 6, padding: '7px 10px', color: 'var(--text)', fontSize: 12 }}
-                    />
-                    <div style={{ position: 'relative', flex: 1 }}>
-                      <input
-                        placeholder="valor"
-                        value={p.value}
-                        onChange={(e) => updateProp(i, 'value', e.target.value)}
-                        style={{ width: '100%', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 6, padding: '7px 36px 7px 10px', color: 'var(--text)', fontSize: 12 }}
-                      />
-                      {p.value && (
-                        <span style={{
-                          position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                          fontSize: 9, fontWeight: 700, color: TYPE_COLORS[t], letterSpacing: '0.05em',
-                        }}>
-                          {TYPE_LABELS[t]}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeProp(i)}
-                      style={{ background: 'transparent', border: '1px solid transparent', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: 'var(--text-muted)', flexShrink: 0 }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--danger)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'transparent' }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                )
-              })}
+              {props.map((p, i) => (
+                <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <input
+                    placeholder="clave"
+                    value={p.key}
+                    onChange={(e) => updateProp(i, 'key', e.target.value)}
+                    style={{ flex: '0 0 130px', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 6, padding: '7px 10px', color: 'var(--text)', fontSize: 12 }}
+                  />
+                  <select
+                    value={p.type}
+                    onChange={(e) => updateProp(i, 'type', e.target.value)}
+                    style={{
+                      flex: '0 0 56px', background: 'var(--panel)', border: '1px solid var(--border)',
+                      borderRadius: 6, padding: '7px 4px', color: TYPE_COLORS[p.type] || 'var(--text-muted)',
+                      fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    <option value="str">str</option>
+                    <option value="num">num</option>
+                    <option value="bool">bool</option>
+                  </select>
+                  <input
+                    placeholder={p.type === 'bool' ? 'true / false' : 'valor'}
+                    value={p.value}
+                    onChange={(e) => updateProp(i, 'value', e.target.value)}
+                    style={{ flex: 1, background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 6, padding: '7px 10px', color: 'var(--text)', fontSize: 12 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeProp(i)}
+                    style={{ background: 'transparent', border: '1px solid transparent', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: 'var(--text-muted)', flexShrink: 0 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--danger)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'transparent' }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
             </div>
 
             <button

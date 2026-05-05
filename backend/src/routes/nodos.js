@@ -31,6 +31,7 @@ router.get('/', async (req, res) => {
        WHERE ($label IS NULL OR $label IN labels(n))
        AND all(k IN keys($filters) WHERE n[k] = $filters[k])
        RETURN id(n) AS id, labels(n) AS labels, properties(n) AS properties
+       ORDER BY id(n) DESC
        LIMIT 200`,
       { label: label || null, filters }
     );
@@ -118,16 +119,38 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.patch('/:id/propiedades', async (req, res) => {
-  const { propiedades } = req.body;
+router.patch('/:id/labels', async (req, res) => {
+  const { labels } = req.body;
+  if (!validateLabels(labels) || labels.length === 0) {
+    return res.status(400).json({ error: 'Labels inválidos o vacíos' });
+  }
   const session = getSession();
   try {
-    logger.info('Nodo actualizado', { id: Number(req.params.id) });
+    logger.info('Nodo labels actualizados', { id: Number(req.params.id), labels });
     const result = await session.run(
       `MATCH (n) WHERE id(n) = $id
-       SET n += $props
+       FOREACH (_ IN CASE WHEN 'Numero' IN $labels THEN [1] ELSE [] END | SET n:Numero)
+       FOREACH (_ IN CASE WHEN 'Numero' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Numero)
+       FOREACH (_ IN CASE WHEN 'Persona' IN $labels THEN [1] ELSE [] END | SET n:Persona)
+       FOREACH (_ IN CASE WHEN 'Persona' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Persona)
+       FOREACH (_ IN CASE WHEN 'Operadora' IN $labels THEN [1] ELSE [] END | SET n:Operadora)
+       FOREACH (_ IN CASE WHEN 'Operadora' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Operadora)
+       FOREACH (_ IN CASE WHEN 'Dispositivo' IN $labels THEN [1] ELSE [] END | SET n:Dispositivo)
+       FOREACH (_ IN CASE WHEN 'Dispositivo' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Dispositivo)
+       FOREACH (_ IN CASE WHEN 'Llamada' IN $labels THEN [1] ELSE [] END | SET n:Llamada)
+       FOREACH (_ IN CASE WHEN 'Llamada' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Llamada)
+       FOREACH (_ IN CASE WHEN 'Mensaje' IN $labels THEN [1] ELSE [] END | SET n:Mensaje)
+       FOREACH (_ IN CASE WHEN 'Mensaje' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Mensaje)
+       FOREACH (_ IN CASE WHEN 'Reporte' IN $labels THEN [1] ELSE [] END | SET n:Reporte)
+       FOREACH (_ IN CASE WHEN 'Reporte' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Reporte)
+       FOREACH (_ IN CASE WHEN 'Sospechoso' IN $labels THEN [1] ELSE [] END | SET n:Sospechoso)
+       FOREACH (_ IN CASE WHEN 'Sospechoso' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Sospechoso)
+       FOREACH (_ IN CASE WHEN 'Bloqueado' IN $labels THEN [1] ELSE [] END | SET n:Bloqueado)
+       FOREACH (_ IN CASE WHEN 'Bloqueado' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Bloqueado)
+       FOREACH (_ IN CASE WHEN 'Verificado' IN $labels THEN [1] ELSE [] END | SET n:Verificado)
+       FOREACH (_ IN CASE WHEN 'Verificado' NOT IN $labels THEN [1] ELSE [] END | REMOVE n:Verificado)
        RETURN n`,
-      { id: Number(req.params.id), props: propiedades || {} }
+      { id: Number(req.params.id), labels }
     );
     if (!result.records.length) {
       return res.status(404).json({ error: 'Nodo no encontrado' });
@@ -155,19 +178,16 @@ router.patch('/bulk/propiedades', async (req, res) => {
   }
 });
 
-router.delete('/:id/propiedades', async (req, res) => {
-  const { keys } = req.body;
-  if (!Array.isArray(keys) || keys.length === 0) {
-    return res.status(400).json({ error: 'Keys requeridas' });
-  }
+router.patch('/:id/propiedades', async (req, res) => {
+  const { propiedades } = req.body;
   const session = getSession();
   try {
-    logger.info('Nodo props eliminadas', { id: Number(req.params.id) });
+    logger.info('Nodo actualizado', { id: Number(req.params.id) });
     const result = await session.run(
       `MATCH (n) WHERE id(n) = $id
-       FOREACH (key IN $keys | SET n[key] = null)
+       SET n += $props
        RETURN n`,
-      { id: Number(req.params.id), keys }
+      { id: Number(req.params.id), props: propiedades || {} }
     );
     if (!result.records.length) {
       return res.status(404).json({ error: 'Nodo no encontrado' });
@@ -198,14 +218,24 @@ router.delete('/bulk/propiedades', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id/propiedades', async (req, res) => {
+  const { keys } = req.body;
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return res.status(400).json({ error: 'Keys requeridas' });
+  }
   const session = getSession();
   try {
-    logger.info('Nodo eliminado', { id: Number(req.params.id) });
-    await session.run(`MATCH (n) WHERE id(n) = $id DETACH DELETE n`, {
-      id: Number(req.params.id),
-    });
-    return res.json({ eliminado: true });
+    logger.info('Nodo props eliminadas', { id: Number(req.params.id) });
+    const result = await session.run(
+      `MATCH (n) WHERE id(n) = $id
+       FOREACH (key IN $keys | SET n[key] = null)
+       RETURN n`,
+      { id: Number(req.params.id), keys }
+    );
+    if (!result.records.length) {
+      return res.status(404).json({ error: 'Nodo no encontrado' });
+    }
+    return res.json(result.records[0].get('n').properties);
   } finally {
     await session.close();
   }
@@ -223,6 +253,19 @@ router.delete('/bulk', async (req, res) => {
       { ids: ids || [] }
     );
     return res.json({ eliminados: (ids || []).length });
+  } finally {
+    await session.close();
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  const session = getSession();
+  try {
+    logger.info('Nodo eliminado', { id: Number(req.params.id) });
+    await session.run(`MATCH (n) WHERE id(n) = $id DETACH DELETE n`, {
+      id: Number(req.params.id),
+    });
+    return res.json({ eliminado: true });
   } finally {
     await session.close();
   }
