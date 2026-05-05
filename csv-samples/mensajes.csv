@@ -1,0 +1,6 @@
+numero_origen,numero_destino,id_mensaje,tipo,fecha,hora,contiene_amenaza,longitud_caracteres,score_riesgo,palabras_clave,fecha_lectura,leido,bloqueado
+502-7777-8888,502-1111-2222,MSG-000001,SMS,2024-03-10,02:10:00,true,145,0.9,dinero;amenaza,2024-03-10,true,false
+502-3333-4444,502-5555-6666,MSG-000002,WhatsApp,2024-03-11,11:00:00,false,80,0.05,,2024-03-11,true,false
+502-7777-8888,502-9999-0000,MSG-000003,SMS,2024-03-12,01:30:00,true,200,0.88,pagar;urgente,2024-03-12,false,true
+502-1111-2222,502-3333-4444,MSG-000004,WhatsApp,2024-03-13,09:00:00,false,60,0.02,,2024-03-13,true,false
+502-7777-8888,502-5555-6666,MSG-000005,SMS,2024-03-13,03:00:00,true,175,0.92,amenaza;dinero,2024-03-14,false,true

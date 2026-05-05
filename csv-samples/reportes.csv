@@ -1,0 +1,5 @@
+dpi,numero,id_reporte,tipo_fraude,fecha,estado,monto_afectado,verificado,evidencias,canal,anonimo,nivel_certeza,tipo_evidencia,prioridad
+1234567890123,502-7777-8888,REP-000001,extorsion,2024-03-11,pendiente,1500.00,false,captura_pantalla;grabacion,web,false,0.85,captura_pantalla,1
+9876543210987,502-7777-8888,REP-000002,amenaza,2024-03-12,investigando,0.00,false,captura_pantalla,app,false,0.9,grabacion,1
+7890123456789,502-3333-4444,REP-000003,estafa,2024-03-13,pendiente,500.00,false,captura_pantalla,web,true,0.6,captura_pantalla,2
+3216549870321,502-7777-8888,REP-000004,extorsion,2024-03-14,pendiente,2000.00,false,mensaje_texto,web,false,0.75,mensaje_texto,1

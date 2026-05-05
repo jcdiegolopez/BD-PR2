@@ -1,0 +1,6 @@
+nombre,dpi,edad,departamento,es_sospechoso,fecha_registro,roles
+Juan Carlos Lopez,1234567890123,34,Guatemala,false,2023-01-10,victima
+Maria Elena Gomez,9876543210987,28,Quetzaltenango,false,2022-05-20,victima;denunciante
+Roberto Ajanel,4561237890456,45,Petén,true,2021-09-01,sospechoso
+Ana Sofia Reyes,7890123456789,22,Escuintla,false,2024-02-14,victima
+Carlos Mendez,3216549870321,55,Zacapa,false,2023-07-07,denunciante

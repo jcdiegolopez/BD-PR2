@@ -1,0 +1,6 @@
+imei,marca,modelo,sistema_operativo,reportado,fecha_primer_uso,numeros_distintos_usados
+123456789012345,Samsung,A14,Android 13,false,2023-02-01,1
+987654321098765,Xiaomi,Redmi 12,Android 14,true,2022-11-15,4
+456123789045612,Motorola,Moto G,Android 13,false,2024-01-20,1
+789012345678901,Apple,iPhone 12,iOS 17,false,2021-06-10,2
+321654987032165,Samsung,A54,Android 14,true,2023-08-30,6

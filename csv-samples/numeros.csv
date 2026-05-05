@@ -1,0 +1,6 @@
+numero,activo,tipo,fecha_registro,total_reportes,score_riesgo,etiquetas
+502-1111-2222,true,prepago,2023-03-15,0,0.0,
+502-3333-4444,true,pospago,2022-08-01,1,0.3,fraude
+502-5555-6666,true,prepago,2024-01-10,0,0.0,
+502-7777-8888,false,pospago,2021-06-20,2,0.65,extorsion;amenaza
+502-9999-0000,true,prepago,2023-11-05,0,0.1,
