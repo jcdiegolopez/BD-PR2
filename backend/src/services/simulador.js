@@ -252,8 +252,8 @@ async function generarDataset({
         `UNWIND $rows AS row
          MATCH (p:Persona) WHERE id(p) = row.personaId
          MATCH (n:Numero) WHERE id(n) = row.numeroId
-         MERGE (p)-[:ES_TITULAR_DE]->(n)
-         ON CREATE SET p.fecha_desde = date('2023-01-01')`,
+         MERGE (p)-[r:ES_TITULAR_DE]->(n)
+         ON CREATE SET r.fecha_desde = date('2023-01-01'), r.activo = true, r.tipo_vinculo = 'titular'`,
         titularRows
       );
     }
@@ -338,6 +338,21 @@ async function generarDataset({
        CREATE (p)-[:REALIZO_REPORTE {fecha: r.fecha, canal: 'web', anonimo: false}]->(r)
        CREATE (r)-[:INVOLUCRA_NUMERO {nivel_certeza: 0.5, tipo_evidencia: 'captura_pantalla', prioridad: 2}]->(n)`,
       reportesData
+    );
+
+    // GENERO: link suspicious calls to reports
+    await session.run(
+      `MATCH (l:Llamada {sospechosa: true}), (r:Reporte)
+       WITH l, r LIMIT 100
+       MERGE (l)-[g:GENERO]->(r)
+       ON CREATE SET g.fecha = l.fecha, g.motivo = 'llamada_sospechosa', g.nivel_evidencia = 'alto'`
+    );
+
+    // VICTIMA_DE: personas that filed reports against a number
+    await session.run(
+      `MATCH (p:Persona)-[:REALIZO_REPORTE]->(r:Reporte)-[:INVOLUCRA_NUMERO]->(n:Numero)
+       MERGE (p)-[v:VICTIMA_DE]->(n)
+       ON CREATE SET v.fecha_incidente = r.fecha, v.monto_perdido = r.monto_afectado, v.denunciado = true`
     );
 
     if (ensureConexo && numeroIds.length > 1) {

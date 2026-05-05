@@ -8,6 +8,7 @@ process.on('uncaughtException', (err) => {
   console.error('[uncaughtException]', err?.message || err);
 });
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const nodosRoutes = require('./routes/nodos');
@@ -26,6 +27,7 @@ const PORT = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
+app.use('/csv-samples', express.static(path.join(__dirname, '../../csv-samples')));
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true });

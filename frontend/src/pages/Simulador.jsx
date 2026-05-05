@@ -1,5 +1,17 @@
 import { useState } from 'react'
-import { Upload, Database, AlertTriangle } from 'lucide-react'
+import { Upload, Database, AlertTriangle, Copy } from 'lucide-react'
+
+const BASE_URL = 'http://localhost:4000'
+
+const CSV_SAMPLES = [
+  { entidad: 'Numero',      url: `${BASE_URL}/csv-samples/numeros.csv`,      nota: 'Crea nodos Numero (sin dependencias)' },
+  { entidad: 'Persona',     url: `${BASE_URL}/csv-samples/personas.csv`,     nota: 'Crea nodos Persona (sin dependencias)' },
+  { entidad: 'Operadora',   url: `${BASE_URL}/csv-samples/operadoras.csv`,   nota: 'Crea nodos Operadora (sin dependencias)' },
+  { entidad: 'Dispositivo', url: `${BASE_URL}/csv-samples/dispositivos.csv`, nota: 'Crea nodos Dispositivo (sin dependencias)' },
+  { entidad: 'Llamada',     url: `${BASE_URL}/csv-samples/llamadas.csv`,     nota: 'Requiere numeros.csv cargado primero' },
+  { entidad: 'Mensaje',     url: `${BASE_URL}/csv-samples/mensajes.csv`,     nota: 'Requiere numeros.csv cargado primero' },
+  { entidad: 'Reporte',     url: `${BASE_URL}/csv-samples/reportes.csv`,     nota: 'Requiere numeros.csv y personas.csv cargados' },
+]
 import AppShell from '../components/AppShell.jsx'
 import { runSimulador, cargarCsv } from '../lib/api.js'
 import { toast } from '../components/Toast.jsx'
@@ -39,9 +51,10 @@ function SimuladorPage() {
     setCsvLoading(true)
     addLog(`Cargando CSV para ${csvEntidad}...`)
     try {
-      await cargarCsv({ csvUrl: csvUrl.trim(), entidad: csvEntidad })
-      addLog(`CSV cargado exitosamente para ${csvEntidad}`, 'success')
-      toast(`CSV de ${csvEntidad} cargado`, 'success')
+      const result = await cargarCsv({ csvUrl: csvUrl.trim(), entidad: csvEntidad })
+      const total = result?.total ?? '?'
+      addLog(`CSV cargado exitosamente: ${total} nodos de tipo ${csvEntidad}`, 'success')
+      toast(`CSV de ${csvEntidad} cargado (${total} registros)`, 'success')
       setCsvUrl('')
     } catch (err) {
       addLog(`Error: ${err.response?.data?.error || err.message}`, 'error')
@@ -100,14 +113,14 @@ function SimuladorPage() {
   }
 
   return (
-    <AppShell title="Simulador y carga">
+    <AppShell title="Simulador y carga de datos" description="Genera datasets sintéticos o carga nodos desde archivos CSV">
       <section className="grid">
         <div className="card" style={{ gridColumn: 'span 6' }}>
           <h3><Upload size={16} style={{ marginRight: 8 }} />Cargar CSV</h3>
           <form className="form" onSubmit={handleCsv}>
-            <label>URL del CSV (accesible por Neo4j AuraDB)</label>
+            <label>URL del CSV (accesible por Neo4j)</label>
             <input
-              placeholder="https://raw.githubusercontent.com/..."
+              placeholder="http://localhost:4000/csv-samples/numeros.csv"
               value={csvUrl}
               onChange={(e) => setCsvUrl(e.target.value)}
               required
@@ -120,6 +133,28 @@ function SimuladorPage() {
               {csvLoading ? <><span className="spinner" /> Cargando...</> : <><Upload size={14} /> Cargar</>}
             </button>
           </form>
+
+          <div style={{ marginTop: 20 }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, fontWeight: 600 }}>
+              CSVs de muestra incluidos — clic para cargar:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {CSV_SAMPLES.map(({ entidad, url, nota }) => (
+                <div key={entidad} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="button sm"
+                    title={nota}
+                    onClick={() => { setCsvUrl(url); setCsvEntidad(entidad) }}
+                    style={{ minWidth: 90, fontSize: 11 }}
+                  >
+                    <Copy size={10} style={{ marginRight: 4 }} />{entidad}
+                  </button>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{nota}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="card" style={{ gridColumn: 'span 6' }}>

@@ -147,7 +147,8 @@ function GestionNodosPage() {
 
   return (
     <AppShell
-      title="Gestion de nodos"
+      title="Gestión de nodos"
+      description="Crea, consulta, edita y elimina nodos del grafo — individual o en masa"
       actions={
         <>
           <div className="dropdown">
@@ -232,6 +233,7 @@ function GestionNodosPage() {
             <thead>
               <tr>
                 <th><input type="checkbox" className="checkbox" checked={selected.size === filteredNodes.length && filteredNodes.length > 0} onChange={toggleAll} /></th>
+                <th>ID Neo4j</th>
                 <th>Label(s)</th>
                 <th>Identificador</th>
                 <th>Score</th>
@@ -248,6 +250,9 @@ function GestionNodosPage() {
                   <tr key={nid}>
                     <td>
                       <input type="checkbox" className="checkbox" checked={selected.has(nid)} onChange={() => toggleSelect(nid)} />
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: 11, fontFamily: 'monospace' }} title="Usa este ID en Gestión de Relaciones">
+                      {nid}
                     </td>
                     <td>
                       {(node.labels || []).map((l) => (

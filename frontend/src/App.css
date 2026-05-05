@@ -101,6 +101,8 @@ body {
   color: var(--text);
   background: var(--bg-soft);
   border-color: var(--border);
+  border-left: 2px solid var(--accent);
+  padding-left: 11px;
 }
 
 .nav a:hover:not(.active) {
@@ -477,4 +479,181 @@ body {
   .sidebar { flex-direction: row; }
   .nav { flex-direction: row; }
   .main { padding: 20px; }
+}
+
+/* ── Missing badge variant ── */
+.badge.info {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--info);
+}
+
+/* ── Key-value pair row in forms ── */
+.prop-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.prop-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Dropdown menu ── */
+.dropdown {
+  position: relative;
+}
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  min-width: 210px;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.dropdown-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  text-align: left;
+}
+.dropdown-menu button:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+/* ── Score progress bar ── */
+.score-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+.score-bar {
+  flex: 1;
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.score-val {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: right;
+}
+
+/* ── Simulator log lines ── */
+.log-line { margin: 1px 0; }
+.log-line.success { color: var(--accent-strong); }
+.log-line.error { color: var(--danger); }
+.log-line.info { color: var(--text-muted); }
+
+/* ── Modal action buttons row ── */
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* ── Large spinner ── */
+.spinner.lg {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+}
+
+/* ── Hint / info box ── */
+.hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: var(--radius);
+  line-height: 1.6;
+}
+
+/* ── Card accent variants ── */
+.card.danger-accent {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: linear-gradient(135deg, var(--panel) 60%, rgba(239,68,68,0.06));
+}
+.card.warning-accent {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, var(--panel) 60%, rgba(245,158,11,0.05));
+}
+.card.accent-card {
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+/* ── Metric subtitle ── */
+.metric-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+/* ── Page description under title ── */
+.page-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+  font-weight: 400;
+}
+
+/* ── Card subtle hover ── */
+.card {
+  transition: border-color 0.15s ease;
+}
+.card:hover {
+  border-color: #3f3f46;
+}
+
+/* ── Sidebar nav section label ── */
+.nav-section {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding: 4px 12px;
+  margin-top: 8px;
+  opacity: 0.6;
+}
+
+/* ── Status dot ── */
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }

@@ -107,7 +107,7 @@ function GrafoExplorerPage() {
   const nodeProps = selectedNode?.raw?.properties || selectedNode?.properties || selectedNode || null
 
   return (
-    <AppShell title="Explorador de grafo">
+    <AppShell title="Explorador de grafo" description="Visualiza el grafo de telecomunicaciones y ejecuta consultas Cypher">
       <section className="layout-split">
         <div className="card" style={{ padding: 0 }}>
           <div className="panel-title" style={{ padding: '18px 20px' }}>
@@ -139,35 +139,100 @@ function GrafoExplorerPage() {
             </div>
           </div>
 
-          <div className="card">
+          <div className="card" style={{ overflow: 'hidden' }}>
             <h3>Propiedades del nodo</h3>
-            {stats && (
-              <div className="panel-stack" style={{ gap: 8, marginBottom: 15, padding: 12, background: 'var(--bg-card-alt)', borderRadius: 8 }}>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Resumen de Actividad</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Llamadas:</span> <strong>{stats.calls}</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Víctimas:</span> <strong>{stats.victims}</strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Reportes:</span> <strong style={{ color: stats.reports > 0 ? 'var(--danger)' : 'inherit' }}>{stats.reports}</strong>
-                </div>
+
+            {!selectedNode && (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.3 }}>⬡</div>
+                <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0 }}>
+                  Haz clic en un nodo del grafo
+                </p>
               </div>
             )}
-            {nodeProps ? (
-              <div className="panel-stack" style={{ gap: 6 }}>
-                {Object.entries(nodeProps).map(([key, val]) => (
-                  <div key={key} className="pill" style={{ justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 11 }}>{key}</span>
-                    <strong style={{ fontSize: 11 }}>{typeof val === 'object' ? JSON.stringify(val) : String(val)}</strong>
+
+            {selectedNode && (
+              <>
+                {/* Labels del nodo */}
+                {selectedNode?.raw?.labels && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
+                    {selectedNode.raw.labels.map((l) => (
+                      <span key={l} className={`badge ${l === 'Sospechoso' ? 'high' : l === 'Verificado' ? 'low' : 'info'}`}>
+                        {l}
+                      </span>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                Click en un nodo del grafo para ver sus propiedades
-              </p>
+                )}
+
+                {/* Stats de actividad (solo Numero) */}
+                {stats && (
+                  <div style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, marginBottom: 8 }}>
+                      Actividad detectada
+                    </div>
+                    {[
+                      { label: 'Llamadas realizadas', value: stats.calls, danger: false },
+                      { label: 'Víctimas contactadas', value: stats.victims, danger: Number(stats.victims) > 5 },
+                      { label: 'Reportes en su contra', value: stats.reports, danger: Number(stats.reports) > 0 },
+                    ].map(({ label, value, danger }) => (
+                      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: 12 }}>
+                        <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+                        <strong style={{ color: danger ? 'var(--danger)' : 'var(--text)', fontFamily: 'monospace' }}>
+                          {typeof value === 'object' ? (value?.low ?? 0) : value}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Score de riesgo destacado */}
+                {nodeProps?.score_riesgo != null && (
+                  <div style={{ marginBottom: 12 }}>
+                    {(() => {
+                      const score = parseFloat(nodeProps.score_riesgo)
+                      const pct = Math.round(score * 100)
+                      const color = score >= 0.7 ? 'var(--danger)' : score >= 0.5 ? 'var(--warning)' : 'var(--accent)'
+                      return (
+                        <div style={{ background: 'var(--bg-soft)', border: `1px solid ${color}40`, borderRadius: 8, padding: '10px 14px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12 }}>
+                            <span style={{ color: 'var(--text-muted)' }}>Score de riesgo</span>
+                            <strong style={{ color, fontFamily: 'monospace' }}>{pct}%</strong>
+                          </div>
+                          <div className="score-bar">
+                            <div className="score-bar-fill" style={{ width: `${pct}%`, background: color }} />
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+
+                {/* Resto de propiedades */}
+                {nodeProps && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {Object.entries(nodeProps)
+                      .filter(([k]) => k !== 'score_riesgo')
+                      .map(([key, val]) => {
+                        const display = typeof val === 'object' ? JSON.stringify(val) : String(val)
+                        const isLong = display.length > 20
+                        return (
+                          <div key={key} style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: isLong ? 'flex-start' : 'center',
+                            padding: '5px 8px', borderRadius: 5, fontSize: 12,
+                          }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-soft)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <span style={{ color: 'var(--text-muted)', flexShrink: 0, marginRight: 8 }}>{key}</span>
+                            <span style={{ color: 'var(--text)', fontFamily: isLong ? 'inherit' : 'monospace', fontSize: 11, textAlign: 'right', wordBreak: 'break-all' }}>
+                              {display}
+                            </span>
+                          </div>
+                        )
+                      })}
+                  </div>
+                )}
+              </>
             )}
           </div>
 

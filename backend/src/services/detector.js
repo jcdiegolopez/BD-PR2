@@ -74,85 +74,113 @@ async function runDetections({ ventanaDias = 7 } = {}) {
     // 2. Ejecutar scoring y asignar etiquetas frescas
     const scoreUpdate = await session.run(
       `MATCH (n:Numero)
-       
-       // 1. Reportes
+
+       // 1. Reportes formales
        CALL {
          WITH n
          OPTIONAL MATCH (r:Reporte)-[:INVOLUCRA_NUMERO]->(n)
          RETURN count(DISTINCT r) AS reportes
        }
-       
+
        // 2. Actividad Saliente
        CALL {
          WITH n
          OPTIONAL MATCH (n)-[:ORIGINO]->(l:Llamada)-[:DIRIGIDA_A]->(v:Numero)
-         RETURN count(DISTINCT v) AS victimas, count(l) AS totalLlamadas, avg(l.duracion_segundos) AS avgDur
+         RETURN count(DISTINCT v) AS victimas, count(l) AS totalLlamadas
        }
-       
+
        // 3. Actividad Entrante
        CALL {
          WITH n
          OPTIONAL MATCH (v_in:Numero)-[:ORIGINO]->(l_in:Llamada)-[:DIRIGIDA_A]->(n)
          RETURN count(l_in) AS llamadasEntrantes
        }
-       
-       // 4. Ráfagas
+
+       // 4. Llamadas marcadas como sospechosas (señal directa del simulador)
+       CALL {
+         WITH n
+         OPTIONAL MATCH (n)-[:ORIGINO]->(ls:Llamada)
+         WHERE ls.sospechosa = true
+         RETURN count(ls) AS llamadasSospechosas
+       }
+
+       // 5. Mensajes con amenaza (señal directa del simulador)
+       CALL {
+         WITH n
+         OPTIONAL MATCH (n)-[:ENVIO]->(m:Mensaje)
+         WHERE m.contiene_amenaza = true
+         RETURN count(m) AS mensajesAmenaza
+       }
+
+       // 6. Ráfagas
        CALL {
          WITH n
          OPTIONAL MATCH (n)-[:ORIGINO]->(l:Llamada)
          WITH n, l.fecha AS f, substring(l.hora, 0, 2) AS h, count(*) AS c
          RETURN max(c) AS maxRafaga
        }
-       
-       // 5. Nocturnas
+
+       // 7. Nocturnas
        CALL {
          WITH n
          OPTIONAL MATCH (n)-[:ORIGINO]->(l:Llamada)
          WHERE l.hora < $limite
          RETURN count(l) AS nocturnas
        }
-       
-       // 6. Dispositivos
+
+       // 8. Dispositivos
        CALL {
          WITH n
          OPTIONAL MATCH (d:Dispositivo)-[:USO_NUMERO]->(n)
          RETURN count(DISTINCT d) AS dispositivos
        }
-       
-       WITH n, reportes, victimas, totalLlamadas, avgDur, llamadasEntrantes, coalesce(maxRafaga, 0) AS maxRafaga, nocturnas, dispositivos
-       
-       // CÁLCULO DE SCORE DE ALTA PRECISIÓN
+
+       WITH n, reportes, victimas, totalLlamadas, llamadasEntrantes,
+            llamadasSospechosas, mensajesAmenaza,
+            coalesce(maxRafaga, 0) AS maxRafaga, nocturnas, dispositivos
+
+       // CÁLCULO DE SCORE
+       // Señales directas (alta precisión): llamadas/mensajes marcados como fraude
+       // Señales de comportamiento (baja precisión): muchas víctimas, horarios, etc.
        WITH n,
-            (CASE WHEN reportes = 1 THEN 0.3 WHEN reportes >= 2 THEN 0.6 ELSE 0 END) + 
-            (log10(victimas + 1) * 0.1) + 
-            (CASE WHEN llamadasEntrantes = 0 AND totalLlamadas > 30 THEN 0.1 ELSE 0 END) +
-            (CASE WHEN maxRafaga > 25 THEN 0.1 ELSE 0 END) +
-            (CASE WHEN avgDur < 5 AND totalLlamadas > 20 THEN 0.1 ELSE 0 END) +
-            (CASE WHEN nocturnas > 15 THEN 0.05 ELSE 0 END) + 
+            (CASE WHEN llamadasSospechosas >= 10 THEN 0.50
+                  WHEN llamadasSospechosas >= 5  THEN 0.35
+                  WHEN llamadasSospechosas >= 2  THEN 0.20
+                  WHEN llamadasSospechosas >= 1  THEN 0.10
+                  ELSE 0 END) +
+            (CASE WHEN mensajesAmenaza >= 5 THEN 0.35
+                  WHEN mensajesAmenaza >= 2 THEN 0.20
+                  WHEN mensajesAmenaza >= 1 THEN 0.10
+                  ELSE 0 END) +
+            (CASE WHEN reportes >= 2 THEN 0.20 WHEN reportes = 1 THEN 0.10 ELSE 0 END) +
+            (log10(victimas + 1) * 0.12) +
+            (CASE WHEN llamadasEntrantes = 0 AND totalLlamadas > 20 THEN 0.10 ELSE 0 END) +
+            (CASE WHEN maxRafaga > 15 THEN 0.10 WHEN maxRafaga > 8 THEN 0.05 ELSE 0 END) +
+            (CASE WHEN nocturnas > 10 THEN 0.05 ELSE 0 END) +
             (CASE WHEN dispositivos > 3 THEN 0.05 ELSE 0 END) AS rawScore
-       
+
        SET n.score_riesgo = CASE
          WHEN rawScore > 1.0 THEN 1.0
          WHEN rawScore < 0.0 THEN 0.0
          ELSE rawScore
        END
-       
+
        WITH n
        RETURN count(n) AS actualizados`,
       { limite: '05:00' }
     );
     results.scoresActualizados = scoreUpdate.records.map((r) => r.toObject());
 
-    // 3. Sincronizar etiquetas de forma masiva (Infalible)
+    // 3. Sincronizar etiquetas (umbral 0.5 = al menos 2 señales directas de fraude)
     await session.run(`
       MATCH (n:Numero)
-      WHERE n.score_riesgo >= 0.95
+      WHERE n.score_riesgo >= 0.5
       SET n:Sospechoso
     `);
-    
+
     await session.run(`
       MATCH (n:Sospechoso)
-      WHERE n.score_riesgo < 0.95
+      WHERE n.score_riesgo < 0.5
       REMOVE n:Sospechoso
     `);
 

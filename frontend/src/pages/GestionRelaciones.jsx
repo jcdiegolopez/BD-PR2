@@ -188,7 +188,8 @@ function GestionRelacionesPage() {
 
   return (
     <AppShell
-      title="Gestion de relaciones"
+      title="Gestión de relaciones"
+      description="Crea relaciones entre nodos existentes y gestiona sus propiedades"
       actions={
         <div className="dropdown">
           <button className="button" onClick={() => setBulkMenu(!bulkMenu)} disabled={selected.size === 0}>
@@ -228,7 +229,10 @@ function GestionRelacionesPage() {
 
       <section className="grid">
         <div className="card" style={{ gridColumn: 'span 4' }}>
-          <h3>Nueva relacion</h3>
+          <h3>Nueva relación</h3>
+          <p className="hint" style={{ marginBottom: 12 }}>
+            Obtén el ID de un nodo desde la tabla de la derecha o desde Gestión de Nodos.
+          </p>
           <form className="form" onSubmit={handleCreate}>
             <label>ID nodo origen</label>
             <input
@@ -293,6 +297,7 @@ function GestionRelacionesPage() {
               <thead>
                 <tr>
                   <th><input type="checkbox" className="checkbox" checked={selected.size === relations.length && relations.length > 0} onChange={toggleAll} /></th>
+                  <th>ID rel.</th>
                   <th>Tipo</th>
                   <th>Origen</th>
                   <th>Destino</th>
@@ -306,6 +311,7 @@ function GestionRelacionesPage() {
                   return (
                     <tr key={rid}>
                       <td><input type="checkbox" className="checkbox" checked={selected.has(rid)} onChange={() => toggleSelect(rid)} /></td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 11, fontFamily: 'monospace' }}>{rid}</td>
                       <td><span className="badge info">{rel.tipo}</span></td>
                       <td>{getNodeLabel(rel, 'origen')}</td>
                       <td>{getNodeLabel(rel, 'destino')}</td>

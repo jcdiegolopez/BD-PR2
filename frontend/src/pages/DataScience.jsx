@@ -101,7 +101,8 @@ function DataSciencePage() {
 
   return (
     <AppShell
-      title="Analisis de Red"
+      title="Análisis de Red"
+      description="PageRank para detectar nodos centrales y Label Propagation para identificar comunidades"
       actions={
         <div style={{ display: 'flex', gap: 8 }}>
           {hasData && (
